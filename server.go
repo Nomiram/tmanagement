@@ -40,6 +40,7 @@ var tasks = []task{
 func main() {
 	router := gin.Default()
 	router.GET("/orders", getOrders)
+	router.GET("/duration/:order", getBrowserOptDuration)
 	router.GET("/tasks/:id", getTasks)
 	router.POST("/orders", postOrders)
 	router.POST("/tasks", postTasks)
@@ -55,8 +56,23 @@ func selectSQL(table string) string{
 
 }
 */
+func getBrowserOptDuration(c *gin.Context) {
+	Order_name := c.Param("order")
+	type returnstruct struct{ Duration float64 }
+	i := getOptDuration(Order_name, 10)
+	ret := returnstruct{Duration: i}
+	if i == -1 {
+		c.IndentedJSON(http.StatusBadRequest, struct {
+			Status   string
+			Duration float64
+		}{fmt.Sprint(http.StatusBadRequest), i})
+	} else {
 
+		c.IndentedJSON(http.StatusOK, ret)
+	}
+}
 func getOptDuration(Order_name string, maxres int) float64 {
+	// Получение всех работ для задачи
 	db, err := sql.Open("postgres", CONNSTR)
 	if err != nil {
 		panic(err)
@@ -68,8 +84,9 @@ func getOptDuration(Order_name string, maxres int) float64 {
 	}
 	defer rows.Close()
 	tasks := []task{}
-
+	flag := -1
 	for rows.Next() {
+		flag = 1
 		p := task{}
 		//Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred
 		err := rows.Scan(&p.Task, &p.Order_name, &p.Duration, &p.Resource, &p.Pred)
@@ -82,48 +99,139 @@ func getOptDuration(Order_name string, maxres int) float64 {
 		}
 		tasks = append(tasks, p)
 	}
-	vartasks := tasks
-	time := 0
-	copy(vartasks, tasks)
-	donetasks := []string{}
-	// inworktasks := []string{}
-	for len(vartasks) != 0 {
-		num := rand.Intn(len(vartasks))
-		value := vartasks[num]
-
-		var newPreds []interface{}
-		/*
-			// newPreds := []string{}
-			// a, _ := json.Marshal([]byte(value.Pred))
-			// err := json.Unmarshal([]byte(a), &newPreds)
-			fmt.Printf("Preds old: %+v \n", value.Pred)
-				fmt.Printf("%T\n", value.Pred)
-				fmt.Printf("%T\n", `["1","2"]`)
-				fmt.Println([]byte(`["1","2"]`))
-				fmt.Println([]byte(value.Pred))
-				// err := json.Unmarshal([]byte(`["1","2"]`), &newPreds)
-		*/
-		err := json.Unmarshal([]byte(value.Pred), &newPreds)
-		if err != nil {
-			fmt.Println("error:", err)
+	if flag == -1 {
+		return -1.0
+	}
+	/*
+		type wtask struct {
+			Task    string
+			RemTime int
 		}
-		// fmt.Printf("Preds: %+v \n", newPreds)
-		checkPreds := func(newPreds []interface{}) bool {
-			for _, i := range newPreds {
-				if !inArray(i, donetasks) {
-					return false
+	*/
+	// Начало имитации работы для вычисления длительности проекта
+	vartasks := tasks             // Массив данных для работ
+	waitingtasks := []string{}    // Список оставшихся работ
+	var posibletasks = []string{} // Список допустимых для выполнения работ(предыдущие работы завершены)
+	copy(vartasks, tasks)
+	time := 0                       // Время выполнения
+	donetasks := []string{}         // Список работ, которые были завершены
+	inworktasks := map[string]int{} // Список работ, которые сейчас выполняются
+	// var value task
+	// var num int
+
+	// Формирование списка работ
+	for _, tas := range vartasks {
+		waitingtasks = append(waitingtasks, tas.Task)
+	}
+	// fmt.Println(vartasks)
+	// fmt.Println(waitingtasks)
+	// Пока остались незавершенные работы
+	for len(waitingtasks) > 0 || len(inworktasks) > 0 {
+		for {
+			//Формирование массива возможных работ
+			posibletasks = []string{}
+			for _, value := range vartasks {
+				if inArray(value.Task, waitingtasks) {
+
+					// Проверка: готовы ли обязательные предыдущие работы
+					var newPreds []interface{}
+					err := json.Unmarshal([]byte(value.Pred), &newPreds)
+					if err != nil {
+						fmt.Println("error:", err)
+					}
+					checkPreds := func(newPreds []interface{}) bool {
+						for _, i := range newPreds {
+							if !inArray(i, donetasks) {
+								return false
+							}
+						}
+						return true
+					}
+					if !(checkPreds(newPreds)) {
+						continue
+					}
+
+					// fmt.Println("ps1 ", posibletasks)
+					//Проверка доступности по ресурсам
+					sumResource := func(tasks []task, active map[string]int) int {
+						sum_ := 0
+						for _, tas := range tasks {
+							for key := range active {
+								if tas.Task == key {
+									sum_ += tas.Resource
+								}
+							}
+						}
+						return sum_
+					}(vartasks, inworktasks)
+					if sumResource+value.Resource > maxres {
+						continue
+					}
+					//добавляем работу в массив возможных работ
+					posibletasks = append(posibletasks, value.Task)
+					// fmt.Println("ps2 ", posibletasks)
 				}
 			}
-			return true
+			// Если есть доступные работы
+			// return -1
+			if len(posibletasks) > 0 {
+				// Выбираем случайную работу из списка доступных
+				num := rand.Intn(len(posibletasks))
+				value := task{}
+				for _, val := range vartasks {
+					if val.Task == posibletasks[num] {
+						value = val
+					}
+				}
+				//добавляем работу в массив выполняющихся работ
+				// inworktasks = append(inworktasks, wtask{Task: value.Task, RemTime: value.Duration})
+				inworktasks[value.Task] = value.Duration
+				// Удаляем из массива возможных
+				for ind, val := range waitingtasks {
+					if val == posibletasks[num] {
+						waitingtasks = append(waitingtasks[:ind], waitingtasks[ind+1:]...)
+						break
+					}
+				}
+				// Удаление значения из posibletasks
+				posibletasks = append(posibletasks[:num], posibletasks[num+1:]...)
+				// fmt.Println("posi ", posibletasks)
+
+			} else {
+				break
+			}
+			// fmt.Println("inv33 ", inworktasks)
 		}
-		if !(checkPreds(newPreds)) {
-			continue
+		// return -1
+		//Если не было добавлено ничего и ничего не осталось, то
+		if len(inworktasks) == 0 {
+			return float64(time)
 		}
-		// inworktasks = append(inworktasks, value.Task)
-		donetasks = append(donetasks, value.Task)
-		fmt.Println(donetasks)
-		time += value.Duration
-		vartasks = append(vartasks[:num], vartasks[num+1:]...)
+		// fmt.Println("inv ", inworktasks)
+		// fmt.Println("ps ", posibletasks)
+		//Переход к следующему времени
+		mintime := 0
+		for _, Remtime := range inworktasks {
+			if mintime > 0 {
+				mintime = min(mintime, Remtime)
+			} else {
+				mintime = Remtime
+			}
+		}
+		for ind := range inworktasks {
+			inworktasks[ind] -= mintime
+			if inworktasks[ind] <= 0 {
+				donetasks = append(donetasks, ind)
+				delete(inworktasks, ind)
+			}
+		}
+		time += mintime
+		//
+		// fmt.Println(donetasks)
+		// return -1
+		// RemoveIndex(&vartasks, num)
+		//Удаление индекса num
+		// vartasks = append(vartasks[:num], vartasks[num+1:]...)
 
 		// fmt.Println(key, value)
 		// if value.Pred
@@ -133,6 +241,8 @@ func getOptDuration(Order_name string, maxres int) float64 {
 }
 
 // -----------ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ----------//
+
+// Проверяет есть ли val в массиве array
 func inArray(val interface{}, array interface{}) (index bool) {
 	values := reflect.ValueOf(array)
 
@@ -146,13 +256,24 @@ func inArray(val interface{}, array interface{}) (index bool) {
 
 	return false
 }
+
+// Возвращает минимум двух чисел
+func min(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
+}
+
+// Not working
 func RemoveIndex(s []interface{}, index int) []interface{} {
 	return append(s[:index], s[index+1:]...)
 }
 
 //END ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-
 // -------------------------------------------------------------------------------------
+
+// Возвращает ответ на REST API запрос
 func getTasks(c *gin.Context) {
 	Order_name := c.Param("id")
 
@@ -225,6 +346,7 @@ func getOrders(c *gin.Context) {
 }
 
 // -----------FUNCTION postTasks---------------//
+
 // postTasks: REST API, добавление данных по POST и PUT в таблицу tasks
 func postTasks(c *gin.Context) {
 	var newTask task
