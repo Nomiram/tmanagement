@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -27,6 +28,14 @@ type task struct {
 	Pred       string `json:"pred"`
 }
 
+type taskEn struct {
+	Task       string   `json:"task"`
+	Order_name string   `json:"order_name"`
+	Duration   int      `json:"duration"`
+	Resource   int      `json:"resource"`
+	Pred       []string `json:"pred"`
+}
+
 /*
 type preds struct {
 	Pred []string `json:"pred"`
@@ -34,7 +43,7 @@ type preds struct {
 */
 // var orders = []order{{Order_name: "Order1", Start_date: "2020-10-22"},}
 var tasks = []task{
-	{Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred: ""},
+	{Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred: "[]"},
 }
 
 func main() {
@@ -108,136 +117,169 @@ func getOptDuration(Order_name string, maxres int) float64 {
 			RemTime int
 		}
 	*/
-	// Начало имитации работы для вычисления длительности проекта
-	vartasks := tasks             // Массив данных для работ
-	waitingtasks := []string{}    // Список оставшихся работ
-	var posibletasks = []string{} // Список допустимых для выполнения работ(предыдущие работы завершены)
-	copy(vartasks, tasks)
-	time := 0                       // Время выполнения
-	donetasks := []string{}         // Список работ, которые были завершены
-	inworktasks := map[string]int{} // Список работ, которые сейчас выполняются
-	// var value task
-	// var num int
+	tasksEn := []taskEn{}
+	for _, tas := range tasks {
+		var newPreds []string
+		err := json.Unmarshal([]byte(tas.Pred), &newPreds)
+		if err != nil {
+			panic(err)
+		}
 
-	// Формирование списка работ
-	for _, tas := range vartasks {
-		waitingtasks = append(waitingtasks, tas.Task)
+		tasksEn = append(tasksEn, taskEn{tas.Task, tas.Order_name, tas.Duration, tas.Resource, newPreds})
 	}
-	// fmt.Println(vartasks)
-	// fmt.Println(waitingtasks)
-	// Пока остались незавершенные работы
-	for len(waitingtasks) > 0 || len(inworktasks) > 0 {
-		for {
-			//Формирование массива возможных работ
-			posibletasks = []string{}
-			for _, value := range vartasks {
-				if inArray(value.Task, waitingtasks) {
+	doCh := make(chan float64)
+	GPSS := func() {
+		// Начало имитации работы для вычисления длительности проекта
+		vartasks := tasksEn           // Массив данных для работ
+		waitingtasks := []string{}    // Список оставшихся работ
+		var posibletasks = []string{} // Список допустимых для выполнения работ(предыдущие работы завершены)
+		// copy(vartasks, tasksEn)
+		time := 0                       // Время выполнения
+		donetasks := []string{}         // Список работ, которые были завершены
+		inworktasks := map[string]int{} // Список работ, которые сейчас выполняются
+		// var value task
+		// var num int
 
-					// Проверка: готовы ли обязательные предыдущие работы
-					var newPreds []interface{}
-					err := json.Unmarshal([]byte(value.Pred), &newPreds)
-					if err != nil {
-						fmt.Println("error:", err)
-					}
-					checkPreds := func(newPreds []interface{}) bool {
-						for _, i := range newPreds {
-							if !inArray(i, donetasks) {
-								return false
-							}
+		// Формирование списка работ
+		for _, tas := range vartasks {
+			waitingtasks = append(waitingtasks, tas.Task)
+		}
+		// fmt.Println(len(vartasks))
+		// fmt.Println(waitingtasks)
+		// Пока остались незавершенные работы
+		for len(waitingtasks) > 0 || len(inworktasks) > 0 {
+			for {
+				//Формирование массива возможных работ
+				posibletasks = []string{}
+				for _, value := range vartasks {
+					if inArray(value.Task, waitingtasks) {
+
+						// Проверка: готовы ли обязательные предыдущие работы
+						if err != nil {
+							fmt.Println("error:", err)
 						}
-						return true
-					}
-					if !(checkPreds(newPreds)) {
-						continue
-					}
-
-					// fmt.Println("ps1 ", posibletasks)
-					//Проверка доступности по ресурсам
-					sumResource := func(tasks []task, active map[string]int) int {
-						sum_ := 0
-						for _, tas := range tasks {
-							for key := range active {
-								if tas.Task == key {
-									sum_ += tas.Resource
+						checkPreds := func(value taskEn) bool {
+							for _, i := range value.Pred {
+								if !inArray(i, donetasks) {
+									return false
 								}
 							}
+							return true
 						}
-						return sum_
-					}(vartasks, inworktasks)
-					if sumResource+value.Resource > maxres {
-						continue
+						if !(checkPreds(value)) {
+							continue
+						}
+
+						// fmt.Println("ps1 ", posibletasks)
+						//Проверка доступности по ресурсам
+						sumResource := func(tasks []taskEn, active map[string]int) int {
+							sum_ := 0
+							for _, tas := range tasks {
+								for key := range active {
+									if tas.Task == key {
+										sum_ += tas.Resource
+									}
+								}
+							}
+							return sum_
+						}(vartasks, inworktasks)
+						if sumResource+value.Resource > maxres {
+							continue
+						}
+						//добавляем работу в массив возможных работ
+						posibletasks = append(posibletasks, value.Task)
+						// fmt.Println("ps2 ", posibletasks)
 					}
-					//добавляем работу в массив возможных работ
-					posibletasks = append(posibletasks, value.Task)
-					// fmt.Println("ps2 ", posibletasks)
+				}
+				// Если есть доступные работы
+				if len(posibletasks) > 0 {
+					// Выбираем случайную работу из списка доступных
+					num := rand.Intn(len(posibletasks))
+					value := taskEn{}
+					for _, val := range vartasks {
+						if val.Task == posibletasks[num] {
+							value = val
+						}
+					}
+					//добавляем работу в массив выполняющихся работ
+					// inworktasks = append(inworktasks, wtask{Task: value.Task, RemTime: value.Duration})
+					inworktasks[value.Task] = value.Duration
+					// Удаляем из массива возможных
+					for ind, val := range waitingtasks {
+						if val == posibletasks[num] {
+							waitingtasks = append(waitingtasks[:ind], waitingtasks[ind+1:]...)
+							break
+						}
+					}
+					// Удаление значения из posibletasks
+					//lint:ignore SA4006 (выражение используется далее)
+					posibletasks = append(posibletasks[:num], posibletasks[num+1:]...)
+				} else {
+					break
 				}
 			}
-			// Если есть доступные работы
+			//Если не было добавлено ничего и ничего не осталось, то
+			if len(inworktasks) == 0 {
+				// return float64(time)
+				doCh <- float64(time)
+				return
+			}
+			//Переход к следующему времени
+			mintime := 0
+			for _, Remtime := range inworktasks {
+				if mintime > 0 {
+					mintime = min(mintime, Remtime)
+				} else {
+					mintime = Remtime
+				}
+			}
+			for ind := range inworktasks {
+				inworktasks[ind] -= mintime
+				if inworktasks[ind] <= 0 {
+					donetasks = append(donetasks, ind)
+					delete(inworktasks, ind)
+				}
+			}
+			time += mintime
+			//
+			// fmt.Println(donetasks)
 			// return -1
-			if len(posibletasks) > 0 {
-				// Выбираем случайную работу из списка доступных
-				num := rand.Intn(len(posibletasks))
-				value := task{}
-				for _, val := range vartasks {
-					if val.Task == posibletasks[num] {
-						value = val
-					}
-				}
-				//добавляем работу в массив выполняющихся работ
-				// inworktasks = append(inworktasks, wtask{Task: value.Task, RemTime: value.Duration})
-				inworktasks[value.Task] = value.Duration
-				// Удаляем из массива возможных
-				for ind, val := range waitingtasks {
-					if val == posibletasks[num] {
-						waitingtasks = append(waitingtasks[:ind], waitingtasks[ind+1:]...)
-						break
-					}
-				}
-				// Удаление значения из posibletasks
-				posibletasks = append(posibletasks[:num], posibletasks[num+1:]...)
-				// fmt.Println("posi ", posibletasks)
+			// RemoveIndex(&vartasks, num)
+			//Удаление индекса num
+			// vartasks = append(vartasks[:num], vartasks[num+1:]...)
 
-			} else {
-				break
-			}
-			// fmt.Println("inv33 ", inworktasks)
+			// fmt.Println(key, value)
+			// if value.Pred
 		}
-		// return -1
-		//Если не было добавлено ничего и ничего не осталось, то
-		if len(inworktasks) == 0 {
-			return float64(time)
-		}
-		// fmt.Println("inv ", inworktasks)
-		// fmt.Println("ps ", posibletasks)
-		//Переход к следующему времени
-		mintime := 0
-		for _, Remtime := range inworktasks {
-			if mintime > 0 {
-				mintime = min(mintime, Remtime)
-			} else {
-				mintime = Remtime
-			}
-		}
-		for ind := range inworktasks {
-			inworktasks[ind] -= mintime
-			if inworktasks[ind] <= 0 {
-				donetasks = append(donetasks, ind)
-				delete(inworktasks, ind)
-			}
-		}
-		time += mintime
-		//
-		// fmt.Println(donetasks)
-		// return -1
-		// RemoveIndex(&vartasks, num)
-		//Удаление индекса num
-		// vartasks = append(vartasks[:num], vartasks[num+1:]...)
+		// return float64(time)
+		doCh <- float64(time)
+		// return
 
-		// fmt.Println(key, value)
-		// if value.Pred
 	}
-	return float64(time)
+	start := time.Now() //Запись времени
+	goroutinesCount := 100000
+	for i := 0; i < goroutinesCount; i++ { //Запуск goroutinesCount горутин
+		go GPSS()
 
+	}
+	mintime := -1.0
+	mas := []float64{}
+	/*
+		result := make(chan float64)
+		go func ()  {
+
+		}
+	*/
+	for i := 0; i < goroutinesCount; i++ {
+		mas = append(mas, <-doCh)
+	}
+	mintime = mas[0]
+	for i := 0; i < goroutinesCount; i++ {
+		mintime = minfl(mas[i], mintime)
+	}
+	duration2 := time.Since(start)
+	fmt.Println("Время с параллелизмом: ", duration2, "количество горутин: ", len(mas))
+	return float64(mintime)
 }
 
 // -----------ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ----------//
@@ -259,6 +301,12 @@ func inArray(val interface{}, array interface{}) (index bool) {
 
 // Возвращает минимум двух чисел
 func min(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
+}
+func minfl(a, b float64) float64 {
 	if a <= b {
 		return a
 	}
