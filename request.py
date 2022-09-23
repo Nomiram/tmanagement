@@ -1,6 +1,7 @@
 '''
 Позволяет посылать запросы get и post на сервер
 '''
+# TODO: добавить полный список всех API и упорядочить
 import json
 import requests
 
@@ -10,12 +11,6 @@ URL3 = 'http://localhost:8080/orders'
 headers = {
     "Content-type": "application/json",
 }
-'''
-data = {"id": "4",
-"title": "The Modern Sound of Betty Carter",
-"artist": "Betty Carter",
-"price": 49.99}
-'''
 # {Order_name: "Order1", Start_date: "2020-10-22"}
 # data = {"order_name": "Order4", "start_date":"2020-11-23"}
 data = {"task": "3", "order_name": "OrderA", "duration": 4, "resource": 3, "pred": "1"}

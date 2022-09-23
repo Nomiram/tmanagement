@@ -14,6 +14,13 @@ import (
 	_ "github.com/lib/pq"
 )
 
+/*
+TODO:
+1. Разбить на файлы
+2. Добавить удаление REST API DELETE
+3. Дальнейшая оптимизация кода
+4. Возвращение упорядоченного списка задач в дополнение к длительности
+*/
 var CONNSTR = "user=postgres password=qwerty dbname=VS sslmode=disable"
 
 type order struct {
