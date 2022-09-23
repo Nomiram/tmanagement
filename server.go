@@ -21,6 +21,8 @@ TODO:
 3. Дальнейшая оптимизация кода
 4. Возвращение упорядоченного списка задач в дополнение к длительности
 */
+
+// Информация для подключения к БД postgres
 var CONNSTR = "user=postgres password=qwerty dbname=VS sslmode=disable"
 
 type order struct {
@@ -49,14 +51,15 @@ type preds struct {
 }
 */
 // var orders = []order{{Order_name: "Order1", Start_date: "2020-10-22"},}
+
 var tasks = []task{
 	{Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred: "[]"},
 }
 
 func main() {
 	router := gin.Default()
-	router.GET("/orders", getOrders)
 	router.GET("/duration/:order", getBrowserOptDuration)
+	router.GET("/orders", getOrders)
 	router.GET("/tasks/:id", getTasks)
 	router.POST("/orders", postOrders)
 	router.POST("/tasks", postTasks)
@@ -71,6 +74,12 @@ func main() {
 func selectSQL(table string) string{
 
 }
+*/
+
+/*
+REST API:GET Функция возвращает кратчайшее время для работ
+
+~/duration/<string>
 */
 func getBrowserOptDuration(c *gin.Context) {
 	Order_name := c.Param("order")
@@ -309,7 +318,7 @@ func RemoveIndex(s []interface{}, index int) []interface{} {
 //END ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // -------------------------------------------------------------------------------------
 
-// Возвращает ответ на REST API запрос
+// REST API:GET Возвращает информацию из таблицы tasks
 func getTasks(c *gin.Context) {
 	Order_name := c.Param("id")
 
@@ -352,6 +361,7 @@ func getTasks(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, tasks)
 }
 
+// REST API:GET Возвращает информацию из таблицы orders
 func getOrders(c *gin.Context) {
 	db, err := sql.Open("postgres", CONNSTR)
 	if err != nil {
@@ -383,7 +393,7 @@ func getOrders(c *gin.Context) {
 
 // -----------FUNCTION postTasks---------------//
 
-// postTasks: REST API, добавление данных по POST и PUT в таблицу tasks
+// REST API:POST,PUT добавление данных по POST и PUT в таблицу tasks
 func postTasks(c *gin.Context) {
 	var newTask task
 	//Получение данных из контекста
@@ -422,7 +432,10 @@ func postTasks(c *gin.Context) {
 }
 
 // ------------FUNCTION postOrders--------------//
-// postOrders: REST API, добавление данных по POST и PUT в таблицу orders
+
+// REST API:POST,PUT добавление данных по POST и PUT в таблицу orders
+//
+// json: {"order_name":string, start_date":string}
 func postOrders(c *gin.Context) {
 	var newOrder order
 	//Получение данных
