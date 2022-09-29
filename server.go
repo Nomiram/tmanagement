@@ -17,9 +17,7 @@ import (
 /*
 TODO:
 1. Разбить на файлы
-2. Добавить удаление REST API DELETE
-3. Дальнейшая оптимизация кода
-4. Возвращение упорядоченного списка задач в дополнение к длительности
+2. Дальнейшая оптимизация кода
 */
 
 // Информация для подключения к БД postgres
@@ -29,9 +27,11 @@ type order struct {
 	Order_name string `json:"order_name"`
 	Start_date string `json:"start_date"`
 }
+
 type delorder struct {
 	Order_name string `json:"order_name"`
 }
+
 type task struct {
 	Task       string `json:"task"`
 	Order_name string `json:"order_name"`
@@ -47,17 +47,11 @@ type taskEn struct {
 	Resource   int      `json:"resource"`
 	Pred       []string `json:"pred"`
 }
+
 type taskDel struct {
 	Task       string `json:"task"`
 	Order_name string `json:"order_name"`
 }
-
-/*
-type preds struct {
-	Pred []string `json:"pred"`
-}
-*/
-// var orders = []order{{Order_name: "Order1", Start_date: "2020-10-22"},}
 
 var tasks = []task{
 	{Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred: "[]"},
@@ -74,7 +68,8 @@ func main() {
 	router.POST("/tasks", postTasks)
 	router.PUT("/tasks", postTasks)
 	router.DELETE("/tasks", delTasks)
-	fmt.Println(getOptDuration("OrderB", 10, 10000))
+	router.GET("/ping", func(ctx *gin.Context) { ctx.JSON(http.StatusOK, gin.H{"ok": "Pong"}) })
+	// fmt.Println(getOptDuration("OrderB", 10, 10000))
 	router.Run("localhost:8080")
 }
 
@@ -131,7 +126,6 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 		p := task{}
 		//Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred
 		err := rows.Scan(&p.Task, &p.Order_name, &p.Duration, &p.Resource, &p.Pred)
-		// fmt.Println(tasks)
 
 		if err != nil {
 			fmt.Println(err)
@@ -143,12 +137,6 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 	if flag == -1 {
 		return -1.0, []string{}
 	}
-	/*
-		type wtask struct {
-			Task    string
-			RemTime int
-		}
-	*/
 	tasksEn := map[string]taskEn{}
 	for _, tas := range tasks {
 		var newPreds []string
@@ -160,6 +148,7 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 
 		tasksEn[tas.Task] = taskEn{tas.Task, tas.Order_name, tas.Duration, tas.Resource, newPreds}
 	}
+
 	type ret struct {
 		Duration float64
 		Path     []string
@@ -170,21 +159,16 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 		// Начало имитации работы для вычисления длительности проекта
 		vartasks := tasksEn // Массив данных для работ
 
-		waitingtasks := []string{}    // Список оставшихся работ
-		var posibletasks = []string{} // Список допустимых для выполнения работ(предыдущие работы завершены)
-		// copy(vartasks, tasksEn)
+		waitingtasks := []string{}      // Список оставшихся работ
+		var posibletasks = []string{}   // Список допустимых для выполнения работ(предыдущие работы завершены)
 		time := 0                       // Время выполнения
 		donetasks := []string{}         // Список работ, которые были завершены
 		inworktasks := map[string]int{} // Список работ, которые сейчас выполняются
-		// var value task
-		// var num int
 
 		// Формирование списка работ
 		for k := range vartasks {
 			waitingtasks = append(waitingtasks, k)
 		}
-		// fmt.Println(len(vartasks))
-		// fmt.Println(waitingtasks)
 		// Пока остались незавершенные работы
 		for len(waitingtasks) > 0 || len(inworktasks) > 0 {
 			for {
@@ -240,11 +224,9 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 			//Если не было добавлено ничего и ничего не осталось, то
 			if len(inworktasks) == 0 {
 				if len(waitingtasks) > 0 {
-					// fmt.Println("undone")
 					doCh <- ret{-1.0, donetasks}
 				} else {
 					// return float64(time)
-					// fmt.Println("done:", donetasks)
 					doCh <- ret{float64(time), donetasks}
 
 				}
@@ -262,24 +244,13 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 			for ind := range inworktasks {
 				inworktasks[ind] -= mintime
 				if inworktasks[ind] <= 0 {
-					// fmt.Println()
 					donetasks = append(donetasks, ind)
-					// fmt.Println("testd:", donetasks, ind)
 					delete(inworktasks, ind)
 				}
 			}
 			time += mintime
-			//
-			// return -1
-			// RemoveIndex(&vartasks, num)
-			//Удаление индекса num
-			// vartasks = append(vartasks[:num], vartasks[num+1:]...)
-
-			// fmt.Println(key, value)
-			// if value.Pred
 		}
 		// return float64(time)
-		// fmt.Println("done:", donetasks)
 		doCh <- ret{float64(time), donetasks}
 		// return
 
@@ -292,12 +263,6 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 	}
 	mintime := -1.0
 	mas := []ret{}
-	/*
-		result := make(chan float64)
-		go func ()  {
-
-		}
-	*/
 	for i := 0; i < goroutinesCount; i++ {
 		mas = append(mas, <-doCh)
 	}
@@ -306,7 +271,9 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 	for _, v := range mas {
 		unique[v.Duration] = true
 	}
+
 	fmt.Print("unique: ")
+
 	for key := range unique {
 		fmt.Print(key, " ")
 	}
@@ -365,8 +332,6 @@ func minfl(a, b float64) float64 {
 func getTasks(c *gin.Context) {
 	Order_name := c.Param("id")
 
-	// fmt.Println(Order_name)
-
 	db, err := sql.Open("postgres", CONNSTR)
 	if err != nil {
 		panic(err)
@@ -383,7 +348,6 @@ func getTasks(c *gin.Context) {
 		p := task{}
 		//Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred
 		err := rows.Scan(&p.Task, &p.Order_name, &p.Duration, &p.Resource, &p.Pred)
-		// fmt.Println(tasks)
 
 		if err != nil {
 			fmt.Println(err)
@@ -392,15 +356,6 @@ func getTasks(c *gin.Context) {
 		}
 		tasks = append(tasks, p)
 	}
-	// fmt.Println(tasks)
-	/*
-		for _, a := range tasks {
-			if a.Order_name == Order_name {
-				c.IndentedJSON(http.StatusOK, a)
-				// return
-			}
-		}
-	*/
 	c.IndentedJSON(http.StatusOK, tasks)
 }
 
@@ -427,11 +382,7 @@ func getOrders(c *gin.Context) {
 		}
 		orders = append(orders, p)
 	}
-	// fmt.Println(orders)
-	// fmt.Println(orders)
 	c.IndentedJSON(http.StatusOK, orders)
-	// fmt.Println(err)
-
 }
 
 // -----------FUNCTION postTasks---------------//
@@ -458,7 +409,6 @@ func postTasks(c *gin.Context) {
 		if err != nil {
 			fmt.Println(result)
 			c.IndentedJSON(http.StatusBadRequest, err)
-			// panic(err)
 			return
 		}
 	}
@@ -468,7 +418,6 @@ func postTasks(c *gin.Context) {
 	if err != nil {
 		fmt.Println(result)
 		c.IndentedJSON(http.StatusBadRequest, err)
-		// panic(err)
 		return
 	}
 
@@ -488,7 +437,6 @@ func postOrders(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
-	// fmt.Println(newOrder)
 	//Подключение к Postgres
 	db, err := sql.Open("postgres", CONNSTR)
 	if err != nil {
@@ -528,7 +476,6 @@ func delOrders(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
-	// fmt.Println(newOrder)
 	//Подключение к Postgres
 	db, err := sql.Open("postgres", CONNSTR)
 	if err != nil {
@@ -557,7 +504,6 @@ func delTasks(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
-	// fmt.Println(newOrder)
 	//Подключение к Postgres
 	db, err := sql.Open("postgres", CONNSTR)
 	if err != nil {
