@@ -1,7 +1,7 @@
 package main
 
 import (
-	"tmanagement/handlers"
+	"tmanagement/headers"
 	// "crypto/rand"
 	"database/sql"
 	"encoding/json"
@@ -20,16 +20,15 @@ TODO:
 1. Разбить на файлы
 2. Дальнейшая оптимизация кода
 */
-// type handlers.Delorder = handlers.Delorder
 
-var tasks []handlers.Task = []handlers.Task{}
+var tasks []headers.Task = []headers.Task{}
 
 // Информация для подключения к БД postgres
 var CONNSTR = "user=postgres password=qwerty dbname=VS sslmode=disable"
 
 func main() {
 	router := gin.Default()
-	router.GET("/duration/:handlers.Order", getBrowserOptDuration)
+	router.GET("/duration/:Order", getBrowserOptDuration)
 	router.GET("/orders", getOrders)
 	router.GET("/tasks/:id", getTasks)
 	router.POST("/orders", postOrders)
@@ -57,7 +56,7 @@ REST API:GET Функция возвращает кратчайшее время
 ~/duration/<string>
 */
 func getBrowserOptDuration(c *gin.Context) {
-	Order_name := c.Param("handlers.Order")
+	Order_name := c.Param("Order")
 	type returnstruct struct {
 		Duration float64
 		Path     []string
@@ -89,11 +88,11 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 		panic(err)
 	}
 	defer rows.Close()
-	tasks := []handlers.Task{}
+	tasks := []headers.Task{}
 	flag := -1
 	for rows.Next() {
 		flag = 1
-		p := handlers.Task{}
+		p := headers.Task{}
 		//Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred
 		err := rows.Scan(&p.Task, &p.Order_name, &p.Duration, &p.Resource, &p.Pred)
 
@@ -107,7 +106,7 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 	if flag == -1 {
 		return -1.0, []string{}
 	}
-	tasksEn := map[string]handlers.TaskEn{}
+	tasksEn := map[string]headers.TaskEn{}
 	for _, tas := range tasks {
 		var newPreds []string
 		err := json.Unmarshal([]byte(tas.Pred), &newPreds)
@@ -116,7 +115,7 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 			return -1, []string{}
 		}
 
-		tasksEn[tas.Task] = handlers.TaskEn{Task: tas.Task, Order_name: tas.Order_name, Duration: tas.Duration, Resource: tas.Resource, Pred: newPreds}
+		tasksEn[tas.Task] = headers.TaskEn{Task: tas.Task, Order_name: tas.Order_name, Duration: tas.Duration, Resource: tas.Resource, Pred: newPreds}
 	}
 
 	type ret struct {
@@ -152,7 +151,7 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 				for _, tas := range waitingtasks {
 
 					// Проверка: готовы ли обязательные предыдущие работы
-					checkPreds := func(value handlers.TaskEn) bool {
+					checkPreds := func(value headers.TaskEn) bool {
 						for _, i := range value.Pred {
 							if !inArray(i, donetasks) {
 								return false
@@ -312,10 +311,10 @@ func getTasks(c *gin.Context) {
 		panic(err)
 	}
 	defer rows.Close()
-	tasks := []handlers.Task{}
+	tasks := []headers.Task{}
 
 	for rows.Next() {
-		p := handlers.Task{}
+		p := headers.Task{}
 		//Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred
 		err := rows.Scan(&p.Task, &p.Order_name, &p.Duration, &p.Resource, &p.Pred)
 
@@ -341,10 +340,10 @@ func getOrders(c *gin.Context) {
 		panic(err)
 	}
 	defer rows.Close()
-	orders := []handlers.Order{}
+	orders := []headers.Order{}
 
 	for rows.Next() {
-		p := handlers.Order{}
+		p := headers.Order{}
 		err := rows.Scan(&p.Order_name, &p.Start_date)
 		if err != nil {
 			fmt.Println(err)
@@ -359,7 +358,7 @@ func getOrders(c *gin.Context) {
 
 // REST API:POST,PUT добавление данных по POST и PUT в таблицу tasks
 func postTasks(c *gin.Context) {
-	var newTask handlers.Task
+	var newTask headers.Task
 	//Получение данных из контекста
 	if err := c.BindJSON(&newTask); err != nil {
 		fmt.Println(err)
@@ -372,9 +371,9 @@ func postTasks(c *gin.Context) {
 		panic(err)
 	}
 	defer db.Close()
-	////Удаление handlers.Task при обновлении
+	////Удаление headers.Task при обновлении
 	if c.Request.Method == "PUT" {
-		result, err := db.Exec("DELETE FROM tasks WHERE handlers.Task = $1 AND order_name = $2; ",
+		result, err := db.Exec("DELETE FROM tasks WHERE headers.Task = $1 AND order_name = $2; ",
 			newTask.Task, newTask.Order_name)
 		if err != nil {
 			fmt.Println(result)
@@ -382,8 +381,8 @@ func postTasks(c *gin.Context) {
 			return
 		}
 	}
-	// Добавление новой работы "handlers.Task" в таблицу tasks
-	result, err := db.Exec("INSERT INTO tasks (handlers.Task, order_name, duration, resource, pred) values ($1, $2, $3, $4, $5)",
+	// Добавление новой работы "headers.Task" в таблицу tasks
+	result, err := db.Exec("INSERT INTO tasks (headers.Task, order_name, duration, resource, pred) values ($1, $2, $3, $4, $5)",
 		newTask.Task, newTask.Order_name, newTask.Duration, newTask.Resource, newTask.Pred)
 	if err != nil {
 		fmt.Println(result)
@@ -401,7 +400,7 @@ func postTasks(c *gin.Context) {
 //
 // json: {"order_name":string, start_date":string}
 func postOrders(c *gin.Context) {
-	var newOrder handlers.Order
+	var newOrder headers.Order
 	//Получение данных
 	if err := c.BindJSON(&newOrder); err != nil {
 		fmt.Println(err)
@@ -413,7 +412,7 @@ func postOrders(c *gin.Context) {
 		panic(err)
 	}
 	defer db.Close()
-	////Удаление handlers.Order при обновлении
+	////Удаление headers.Order при обновлении
 	if c.Request.Method == "PUT" {
 		result, err := db.Exec("DELETE FROM orders WHERE order_name = $1; ",
 			newOrder.Order_name)
@@ -440,7 +439,7 @@ func postOrders(c *gin.Context) {
 //
 // json: {"order_name":string}
 func delOrders(c *gin.Context) {
-	var Order handlers.Delorder
+	var Order headers.Delorder
 	//Получение данных
 	if err := c.BindJSON(&Order); err != nil {
 		fmt.Println(err)
@@ -468,7 +467,7 @@ func delOrders(c *gin.Context) {
 //
 // json: {"order_name":string}
 func delTasks(c *gin.Context) {
-	var delTask handlers.TaskDel
+	var delTask headers.TaskDel
 	//Получение данных
 	if err := c.BindJSON(&delTask); err != nil {
 		fmt.Println(err)
@@ -481,7 +480,7 @@ func delTasks(c *gin.Context) {
 	}
 	defer db.Close()
 	//Удаление данных из таблицы
-	result, err := db.Exec("DELETE FROM tasks WHERE order_name = $1 AND handlers.Task = $2",
+	result, err := db.Exec("DELETE FROM tasks WHERE order_name = $1 AND headers.Task = $2",
 		delTask.Order_name, delTask.Task)
 	if err != nil {
 		fmt.Println(result)
