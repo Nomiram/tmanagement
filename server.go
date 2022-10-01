@@ -1,6 +1,7 @@
 package main
 
 import (
+	"tmanagement/handlers"
 	// "crypto/rand"
 	"database/sql"
 	"encoding/json"
@@ -19,47 +20,16 @@ TODO:
 1. Разбить на файлы
 2. Дальнейшая оптимизация кода
 */
+// type handlers.Delorder = handlers.Delorder
+
+var tasks []handlers.Task = []handlers.Task{}
 
 // Информация для подключения к БД postgres
 var CONNSTR = "user=postgres password=qwerty dbname=VS sslmode=disable"
 
-type order struct {
-	Order_name string `json:"order_name"`
-	Start_date string `json:"start_date"`
-}
-
-type delorder struct {
-	Order_name string `json:"order_name"`
-}
-
-type task struct {
-	Task       string `json:"task"`
-	Order_name string `json:"order_name"`
-	Duration   int    `json:"duration"`
-	Resource   int    `json:"resource"`
-	Pred       string `json:"pred"`
-}
-
-type taskEn struct {
-	Task       string   `json:"task"`
-	Order_name string   `json:"order_name"`
-	Duration   int      `json:"duration"`
-	Resource   int      `json:"resource"`
-	Pred       []string `json:"pred"`
-}
-
-type taskDel struct {
-	Task       string `json:"task"`
-	Order_name string `json:"order_name"`
-}
-
-var tasks = []task{
-	{Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred: "[]"},
-}
-
 func main() {
 	router := gin.Default()
-	router.GET("/duration/:order", getBrowserOptDuration)
+	router.GET("/duration/:handlers.Order", getBrowserOptDuration)
 	router.GET("/orders", getOrders)
 	router.GET("/tasks/:id", getTasks)
 	router.POST("/orders", postOrders)
@@ -87,7 +57,7 @@ REST API:GET Функция возвращает кратчайшее время
 ~/duration/<string>
 */
 func getBrowserOptDuration(c *gin.Context) {
-	Order_name := c.Param("order")
+	Order_name := c.Param("handlers.Order")
 	type returnstruct struct {
 		Duration float64
 		Path     []string
@@ -119,11 +89,11 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 		panic(err)
 	}
 	defer rows.Close()
-	tasks := []task{}
+	tasks := []handlers.Task{}
 	flag := -1
 	for rows.Next() {
 		flag = 1
-		p := task{}
+		p := handlers.Task{}
 		//Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred
 		err := rows.Scan(&p.Task, &p.Order_name, &p.Duration, &p.Resource, &p.Pred)
 
@@ -137,7 +107,7 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 	if flag == -1 {
 		return -1.0, []string{}
 	}
-	tasksEn := map[string]taskEn{}
+	tasksEn := map[string]handlers.TaskEn{}
 	for _, tas := range tasks {
 		var newPreds []string
 		err := json.Unmarshal([]byte(tas.Pred), &newPreds)
@@ -146,7 +116,7 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 			return -1, []string{}
 		}
 
-		tasksEn[tas.Task] = taskEn{tas.Task, tas.Order_name, tas.Duration, tas.Resource, newPreds}
+		tasksEn[tas.Task] = handlers.TaskEn{Task: tas.Task, Order_name: tas.Order_name, Duration: tas.Duration, Resource: tas.Resource, Pred: newPreds}
 	}
 
 	type ret struct {
@@ -182,7 +152,7 @@ func getOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 				for _, tas := range waitingtasks {
 
 					// Проверка: готовы ли обязательные предыдущие работы
-					checkPreds := func(value taskEn) bool {
+					checkPreds := func(value handlers.TaskEn) bool {
 						for _, i := range value.Pred {
 							if !inArray(i, donetasks) {
 								return false
@@ -342,10 +312,10 @@ func getTasks(c *gin.Context) {
 		panic(err)
 	}
 	defer rows.Close()
-	tasks := []task{}
+	tasks := []handlers.Task{}
 
 	for rows.Next() {
-		p := task{}
+		p := handlers.Task{}
 		//Task: "1", Order_name: "Order1", Duration: 2, Resource: 3, Pred
 		err := rows.Scan(&p.Task, &p.Order_name, &p.Duration, &p.Resource, &p.Pred)
 
@@ -371,10 +341,10 @@ func getOrders(c *gin.Context) {
 		panic(err)
 	}
 	defer rows.Close()
-	orders := []order{}
+	orders := []handlers.Order{}
 
 	for rows.Next() {
-		p := order{}
+		p := handlers.Order{}
 		err := rows.Scan(&p.Order_name, &p.Start_date)
 		if err != nil {
 			fmt.Println(err)
@@ -389,7 +359,7 @@ func getOrders(c *gin.Context) {
 
 // REST API:POST,PUT добавление данных по POST и PUT в таблицу tasks
 func postTasks(c *gin.Context) {
-	var newTask task
+	var newTask handlers.Task
 	//Получение данных из контекста
 	if err := c.BindJSON(&newTask); err != nil {
 		fmt.Println(err)
@@ -402,9 +372,9 @@ func postTasks(c *gin.Context) {
 		panic(err)
 	}
 	defer db.Close()
-	////Удаление task при обновлении
+	////Удаление handlers.Task при обновлении
 	if c.Request.Method == "PUT" {
-		result, err := db.Exec("DELETE FROM tasks WHERE task = $1 AND order_name = $2; ",
+		result, err := db.Exec("DELETE FROM tasks WHERE handlers.Task = $1 AND order_name = $2; ",
 			newTask.Task, newTask.Order_name)
 		if err != nil {
 			fmt.Println(result)
@@ -412,8 +382,8 @@ func postTasks(c *gin.Context) {
 			return
 		}
 	}
-	// Добавление новой работы "task" в таблицу tasks
-	result, err := db.Exec("INSERT INTO tasks (task, order_name, duration, resource, pred) values ($1, $2, $3, $4, $5)",
+	// Добавление новой работы "handlers.Task" в таблицу tasks
+	result, err := db.Exec("INSERT INTO tasks (handlers.Task, order_name, duration, resource, pred) values ($1, $2, $3, $4, $5)",
 		newTask.Task, newTask.Order_name, newTask.Duration, newTask.Resource, newTask.Pred)
 	if err != nil {
 		fmt.Println(result)
@@ -431,7 +401,7 @@ func postTasks(c *gin.Context) {
 //
 // json: {"order_name":string, start_date":string}
 func postOrders(c *gin.Context) {
-	var newOrder order
+	var newOrder handlers.Order
 	//Получение данных
 	if err := c.BindJSON(&newOrder); err != nil {
 		fmt.Println(err)
@@ -443,7 +413,7 @@ func postOrders(c *gin.Context) {
 		panic(err)
 	}
 	defer db.Close()
-	////Удаление order при обновлении
+	////Удаление handlers.Order при обновлении
 	if c.Request.Method == "PUT" {
 		result, err := db.Exec("DELETE FROM orders WHERE order_name = $1; ",
 			newOrder.Order_name)
@@ -470,7 +440,7 @@ func postOrders(c *gin.Context) {
 //
 // json: {"order_name":string}
 func delOrders(c *gin.Context) {
-	var Order delorder
+	var Order handlers.Delorder
 	//Получение данных
 	if err := c.BindJSON(&Order); err != nil {
 		fmt.Println(err)
@@ -498,7 +468,7 @@ func delOrders(c *gin.Context) {
 //
 // json: {"order_name":string}
 func delTasks(c *gin.Context) {
-	var delTask taskDel
+	var delTask handlers.TaskDel
 	//Получение данных
 	if err := c.BindJSON(&delTask); err != nil {
 		fmt.Println(err)
@@ -511,7 +481,7 @@ func delTasks(c *gin.Context) {
 	}
 	defer db.Close()
 	//Удаление данных из таблицы
-	result, err := db.Exec("DELETE FROM tasks WHERE order_name = $1 AND task = $2",
+	result, err := db.Exec("DELETE FROM tasks WHERE order_name = $1 AND handlers.Task = $2",
 		delTask.Order_name, delTask.Task)
 	if err != nil {
 		fmt.Println(result)
