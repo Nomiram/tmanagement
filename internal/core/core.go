@@ -10,11 +10,9 @@ import (
 	"tmanagement/internal/headers"
 )
 
-var CONNSTR = "user=postgres password=qwerty dbname=VS sslmode=disable"
-
 func GetOptDuration(Order_name string, maxres int, goroutinesCount int) (float64, []string) {
 	// Получение всех работ для задачи
-	db, err := sql.Open("postgres", CONNSTR)
+	db, err := sql.Open("postgres", headers.CONNSTRWDB)
 	if err != nil {
 		panic(err)
 	}

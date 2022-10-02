@@ -1,5 +1,7 @@
 package handlers
 
+// Содержит отбработчики для gin
+
 import (
 	"database/sql"
 	"fmt"
@@ -8,9 +10,8 @@ import (
 	"tmanagement/internal/headers"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
-
-var CONNSTR = "user=postgres password=qwerty dbname=VS sslmode=disable"
 
 /*
 REST API:GET Функция возвращает кратчайшее время для работ
@@ -43,7 +44,7 @@ func GetBrowserOptDuration(c *gin.Context) {
 func GetTasks(c *gin.Context) {
 	Order_name := c.Param("id")
 
-	db, err := sql.Open("postgres", CONNSTR)
+	db, err := sql.Open("postgres", headers.CONNSTRWDB)
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +73,7 @@ func GetTasks(c *gin.Context) {
 
 // REST API:GET Возвращает информацию из таблицы orders
 func GetOrders(c *gin.Context) {
-	db, err := sql.Open("postgres", CONNSTR)
+	db, err := sql.Open("postgres", headers.CONNSTRWDB)
 	if err != nil {
 		panic(err)
 	}
@@ -108,7 +109,7 @@ func PostTasks(c *gin.Context) {
 	}
 	// fmt.Println(newTask)
 	//Подключение к Postgres
-	db, err := sql.Open("postgres", CONNSTR)
+	db, err := sql.Open("postgres", headers.CONNSTRWDB)
 	if err != nil {
 		panic(err)
 	}
@@ -149,7 +150,7 @@ func PostOrders(c *gin.Context) {
 		return
 	}
 	//Подключение к Postgres
-	db, err := sql.Open("postgres", CONNSTR)
+	db, err := sql.Open("postgres", headers.CONNSTRWDB)
 	if err != nil {
 		panic(err)
 	}
@@ -188,7 +189,7 @@ func DelOrders(c *gin.Context) {
 		return
 	}
 	//Подключение к Postgres
-	db, err := sql.Open("postgres", CONNSTR)
+	db, err := sql.Open("postgres", headers.CONNSTRWDB)
 	if err != nil {
 		panic(err)
 	}
@@ -216,7 +217,7 @@ func DelTasks(c *gin.Context) {
 		return
 	}
 	//Подключение к Postgres
-	db, err := sql.Open("postgres", CONNSTR)
+	db, err := sql.Open("postgres", headers.CONNSTRWDB)
 	if err != nil {
 		panic(err)
 	}
