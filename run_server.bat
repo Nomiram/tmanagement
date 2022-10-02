@@ -1,3 +1,3 @@
 go run server.go
 
-pause
+@pause
