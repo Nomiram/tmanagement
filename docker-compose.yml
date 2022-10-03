@@ -13,8 +13,16 @@ services:
     # network_mode: bridge
     networks:
       - backend
+  redis:
+    build: ./redis
+    depends_on:
+      - db
+    networks:
+      - backend
   api:
     build: ./tmanagement
+    environment:
+      DBADDR: "db"
     expose:
       # - 5432
       - 8080
@@ -22,6 +30,7 @@ services:
       - 8080:8080
     depends_on:
       - db
+      - redis
     # network_mode: bridge
     networks:
       - backend
