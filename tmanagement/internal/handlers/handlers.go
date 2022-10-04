@@ -3,15 +3,42 @@ package handlers
 // Содержит отбработчики для gin
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"tmanagement/internal/core"
 	"tmanagement/internal/headers"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
 )
+
+func RedisConnect() *redis.Client {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "redis:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+	return rdb
+}
+func RedisSet(rdb *redis.Client, key string, value string) {
+	var ctx = context.Background()
+	err := rdb.Set(ctx, key, value, 0).Err()
+	if err != nil {
+		panic(err)
+	}
+}
+func RedisGet(rdb *redis.Client, key string) string {
+	var ctx = context.Background()
+	val, err := rdb.Get(ctx, key).Result()
+	if err != nil {
+		panic(err)
+	}
+	return val
+}
 
 /*
 REST API:GET Функция возвращает кратчайшее время для работ
@@ -21,12 +48,23 @@ REST API:GET Функция возвращает кратчайшее время
 func GetBrowserOptDuration(c *gin.Context) {
 	Order_name := c.Param("Order")
 	type returnstruct struct {
-		Duration float64
-		Path     []string
+		Duration float64  `json:"duration"`
+		Path     []string `json:"path"`
 	}
 	//lint:ignore SA4006 (выражение используется далее)
 	path := []string{}
-	i, path := core.GetOptDuration(Order_name, 10, 100000)
+	rdb := RedisConnect()
+	retstr := RedisGet(rdb, Order_name)
+	if retstr != "" {
+		var ret returnstruct
+		err := json.Unmarshal([]byte(retstr), &ret)
+		if err != nil {
+			panic(err)
+		}
+		c.IndentedJSON(http.StatusOK, ret)
+		return
+	}
+	i, path := core.GetOptDuration(Order_name, 10, 200000)
 	ret := returnstruct{Duration: i, Path: path}
 	if i == -1 {
 		c.IndentedJSON(http.StatusBadRequest, struct {
@@ -35,7 +73,8 @@ func GetBrowserOptDuration(c *gin.Context) {
 			Path     []string
 		}{fmt.Sprint(http.StatusBadRequest), i, path})
 	} else {
-
+		res, _ := json.Marshal(ret)
+		RedisSet(rdb, Order_name, string(res))
 		c.IndentedJSON(http.StatusOK, ret)
 	}
 }
@@ -132,7 +171,9 @@ func PostTasks(c *gin.Context) {
 		c.IndentedJSON(http.StatusBadRequest, err)
 		return
 	}
-
+	// Обнуление данных в redis
+	rdb := RedisConnect()
+	RedisSet(rdb, newTask.Order_name, "")
 	// tasks = append(tasks, newTask)
 	c.IndentedJSON(http.StatusCreated, newTask)
 }
@@ -173,7 +214,9 @@ func PostOrders(c *gin.Context) {
 		fmt.Println(result)
 		panic(err)
 	}
-
+	// Обнуление данных в redis
+	rdb := RedisConnect()
+	RedisSet(rdb, newOrder.Order_name, "")
 	c.IndentedJSON(http.StatusCreated, newOrder)
 
 }
@@ -201,7 +244,9 @@ func DelOrders(c *gin.Context) {
 		fmt.Println(result)
 		panic(err)
 	}
-
+	// Обнуление данных в redis
+	rdb := RedisConnect()
+	RedisSet(rdb, Order.Order_name, "")
 	c.IndentedJSON(http.StatusCreated, Order)
 
 }
@@ -229,7 +274,9 @@ func DelTasks(c *gin.Context) {
 		fmt.Println(result)
 		panic(err)
 	}
-
+	// Обнуление данных в redis
+	rdb := RedisConnect()
+	RedisSet(rdb, delTask.Order_name, "")
 	c.IndentedJSON(http.StatusCreated, delTask)
 
 }

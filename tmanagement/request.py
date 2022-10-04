@@ -3,6 +3,7 @@
 '''
 ## TODO: добавить полный список всех API и упорядочить
 import json
+import time
 import requests
 
 URL_TASKS = 'http://localhost:8080/tasks'
@@ -12,6 +13,8 @@ URL_DURATION = 'http://localhost:8080/duration/'+'OrderB'
 headers = {
     "Content-type": "application/json",
 }
+print("Тестирование:")
+print("Создание (обновление) Order (если он уже есть в БД будет выдана ошибка, т.к. его нельзя удалить):")
 # Создание (обновление) Order
 data = {"order_name": "OrderA", "start_date":"2020-11-23"}
 print("PUT:\n",json.dumps(data))
@@ -23,12 +26,21 @@ print("PUT:\n",json.dumps(data))
 r = requests.put(URL_ORDERS, headers=headers, data=json.dumps(data))
 print(r)
 print(r.text)
+print("Создание (обновление) OrderC (для удаления)")
 # Создание (обновление) Order (для удаления)
 data = {"order_name": "OrderC", "start_date":"2020-11-23"}
 print(json.dumps(data))
 r = requests.put(URL_ORDERS, headers=headers, data=json.dumps(data))
 print(r)
 print(r.text)
+# Удаление Order
+print("Удаление OrderC")
+data = {"order_name": "OrderC"}
+print(json.dumps(data))
+r = requests.delete(URL_ORDERS, headers=headers, data=json.dumps(data))
+print(r)
+
+print("Добавление (обновление) списка tasks для расчетов:")
 # {Order_name: "Order1", Start_date: "2020-10-22"}
 # data = {"order_name": "Order4", "start_date":"2020-11-23"}
 data = {"task": "3", "order_name": "OrderA", "duration": 4, "resource": 3, "pred": '["1"]'}
@@ -54,16 +66,39 @@ for data in data_mas:
     # r2 = requests.post(URL1, headers=headers, data=json.dumps(data))
     print(r)
     print(r.text)
+print("Проверка добавления:")
 r3=requests.get(URL_TASK_ORDER)
 print(r3)
 print(r3.text)
-# Удаление Order
-data = {"order_name": "OrderC"}
-print(json.dumps(data))
-r = requests.delete(URL_ORDERS, headers=headers, data=json.dumps(data))
-print(r)
+
+print("Запрос duration")
+start_time = time.time()
 # Запрос duration
 r = requests.get(URL_DURATION)
 print(r)
 print(r.text)
+print("%s seconds" % (time.time() - start_time))
+# Запрос duration повторный
+print("Повторный")
+start_time = time.time()
+r = requests.get(URL_DURATION)
+print(r)
+print(r.text)
+print("%s seconds" % (time.time() - start_time))
+print("Добавление нового элемента:")
+data = {"task": "6", "order_name": "OrderB", "duration": 4, "resource": 10, "pred": '["1"]'}
+r = requests.put(URL_TASKS, headers=headers, data=json.dumps(data))
+print(r)
+print(r.text)
+print("Повторный с добавлением")
+start_time = time.time()
+# Запрос duration повторный2
+r = requests.get(URL_DURATION)
+print(r)
+print(r.text)
+print("%s seconds" % (time.time() - start_time))
+# Удаление Task
+data = {"order_name": "OrderB", "task": "6"}
+print(json.dumps(data))
+r = requests.delete(URL_TASKS, headers=headers, data=json.dumps(data))
 input("Press Enter to exit")

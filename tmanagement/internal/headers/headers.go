@@ -40,3 +40,5 @@ func AddDBinCONNSTR(db string) {
 	CONNSTR = "host=" + db + " port=5432 user=postgres password=postgres sslmode=disable"
 	CONNSTRWDB = CONNSTR + " dbname=VS"
 }
+
+// type redisapi

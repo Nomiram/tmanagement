@@ -45,6 +45,11 @@ func main() {
 	// fmt.Println(getOptDuration("OrderB", 10, 10000))
 	checkDB()
 	fmt.Println("test")
+	rdb := handlers.RedisConnect()
+	// var ctx = context.Background()
+	handlers.RedisSet(rdb, "key", "string")
+	val := handlers.RedisGet(rdb, "key")
+	fmt.Println(val)
 	router.Run(":8080")
 }
 func checkDB() {
