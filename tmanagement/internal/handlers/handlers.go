@@ -7,8 +7,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-	"tmanagement/internal/core"
 	"tmanagement/internal/headers"
 
 	"github.com/gin-gonic/gin"
@@ -52,7 +52,7 @@ func GetBrowserOptDuration(c *gin.Context) {
 		Path     []string `json:"path"`
 	}
 	//lint:ignore SA4006 (выражение используется далее)
-	path := []string{}
+	// path := []string{}
 	rdb := RedisConnect()
 	retstr := RedisGet(rdb, Order_name)
 	if retstr != "" {
@@ -61,22 +61,40 @@ func GetBrowserOptDuration(c *gin.Context) {
 		if err != nil {
 			panic(err)
 		}
-		c.IndentedJSON(http.StatusOK, ret)
+		c.JSON(http.StatusOK, ret)
 		return
 	}
-	i, path := core.GetOptDuration(Order_name, 10, 200000)
-	ret := returnstruct{Duration: i, Path: path}
-	if i == -1 {
-		c.IndentedJSON(http.StatusBadRequest, struct {
-			Status   string
-			Duration float64
-			Path     []string
-		}{fmt.Sprint(http.StatusBadRequest), i, path})
-	} else {
-		res, _ := json.Marshal(ret)
-		RedisSet(rdb, Order_name, string(res))
-		c.IndentedJSON(http.StatusOK, ret)
+	resp, err := http.Get("http://serv2:6000/duration/" + Order_name)
+	if err != nil {
+		panic(err)
 	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	fmt.Println(string(body))
+
+	var ret1 returnstruct
+	err = json.Unmarshal(body, &ret1)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("ret1 ", ret1)
+	c.JSON(resp.StatusCode, ret1)
+	RedisSet(rdb, Order_name, string(body))
+	/*
+		i, path := core.GetOptDuration(Order_name, 10, 200000)
+		ret := returnstruct{Duration: i, Path: path}
+		if i == -1 {
+			c.IndentedJSON(http.StatusBadRequest, struct {
+				Status   string
+				Duration float64
+				Path     []string
+			}{fmt.Sprint(http.StatusBadRequest), i, path})
+		} else {
+			res, _ := json.Marshal(ret)
+			RedisSet(rdb, Order_name, string(res))
+			c.IndentedJSON(http.StatusOK, ret)
+		}
+	*/
 }
 
 // REST API:GET Возвращает информацию из таблицы tasks

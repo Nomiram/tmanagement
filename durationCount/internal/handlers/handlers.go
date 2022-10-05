@@ -4,7 +4,6 @@ package handlers
 
 import (
 	"durationCount/internal/core"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -27,11 +26,7 @@ func GetBrowserOptDuration(c *gin.Context) {
 	i, path := core.GetOptDuration(Order_name, 10, 100000)
 	ret := returnstruct{Duration: i, Path: path}
 	if i == -1 {
-		c.IndentedJSON(http.StatusBadRequest, struct {
-			Status   string
-			Duration float64
-			Path     []string
-		}{fmt.Sprint(http.StatusBadRequest), i, path})
+		c.IndentedJSON(http.StatusBadRequest, returnstruct{i, path})
 	} else {
 
 		c.IndentedJSON(http.StatusOK, ret)

@@ -97,6 +97,13 @@ r = requests.get(URL_DURATION)
 print(r)
 print(r.text)
 print("%s seconds" % (time.time() - start_time))
+print("Повторный2 с добавлением")
+start_time = time.time()
+# Запрос duration повторный2
+r = requests.get(URL_DURATION)
+print(r)
+print(r.text)
+print("%s seconds" % (time.time() - start_time))
 # Удаление Task
 data = {"order_name": "OrderB", "task": "6"}
 print(json.dumps(data))

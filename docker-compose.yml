@@ -31,6 +31,22 @@ services:
     depends_on:
       - db
       - redis
+      - serv2
+    # network_mode: bridge
+    networks:
+      - backend
+  serv2:
+    build: ./durationCount
+    environment:
+      DBADDR: "db"
+    # expose:
+      # - 5432
+      # - 8080
+    # ports:
+      # - 8080:8080
+    depends_on:
+      - db
+      - redis
     # network_mode: bridge
     networks:
       - backend
