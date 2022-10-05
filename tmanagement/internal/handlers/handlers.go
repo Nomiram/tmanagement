@@ -51,12 +51,11 @@ func GetBrowserOptDuration(c *gin.Context) {
 		Duration float64  `json:"duration"`
 		Path     []string `json:"path"`
 	}
-	//lint:ignore SA4006 (выражение используется далее)
-	// path := []string{}
+	var ret returnstruct
+	//Проверка: содержится ли в redis json
 	rdb := RedisConnect()
 	retstr := RedisGet(rdb, Order_name)
 	if retstr != "" {
-		var ret returnstruct
 		err := json.Unmarshal([]byte(retstr), &ret)
 		if err != nil {
 			panic(err)
@@ -64,6 +63,7 @@ func GetBrowserOptDuration(c *gin.Context) {
 		c.JSON(http.StatusOK, ret)
 		return
 	}
+	//Запрос к сервису 2, если в Redis нет json
 	resp, err := http.Get("http://serv2:6000/duration/" + Order_name)
 	if err != nil {
 		panic(err)
@@ -72,13 +72,12 @@ func GetBrowserOptDuration(c *gin.Context) {
 	body, _ := io.ReadAll(resp.Body)
 	fmt.Println(string(body))
 
-	var ret1 returnstruct
-	err = json.Unmarshal(body, &ret1)
+	err = json.Unmarshal(body, &ret)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("ret1 ", ret1)
-	c.JSON(resp.StatusCode, ret1)
+	fmt.Println("ret1 ", ret)
+	c.JSON(resp.StatusCode, ret)
 	RedisSet(rdb, Order_name, string(body))
 	/*
 		i, path := core.GetOptDuration(Order_name, 10, 200000)
