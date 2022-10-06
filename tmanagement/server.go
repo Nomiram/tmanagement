@@ -43,36 +43,56 @@ func main() {
 	router.DELETE("/tasks", handlers.DelTasks)
 	router.GET("/ping", func(ctx *gin.Context) { ctx.JSON(http.StatusOK, gin.H{"ok": "Pong"}) })
 	// fmt.Println(getOptDuration("OrderB", 10, 10000))
-	checkDB()
-	fmt.Println("test")
+	fmt.Println("testing db & redis...")
+	if checkDB() {
+		fmt.Println("DB ok")
+
+	}
 	rdb := handlers.RedisConnect()
 	// var ctx = context.Background()
-	handlers.RedisSet(rdb, "key", "string")
+	handlers.RedisSet(rdb, "key", "ok")
 	val := handlers.RedisGet(rdb, "key")
-	fmt.Println(val)
+	fmt.Println("Redis return " + val)
 	router.Run(":8080")
 }
-func checkDB() {
+func checkDB() bool {
 	db, err := sql.Open("postgres", headers.CONNSTR)
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
-	name := "'VS'"
+	name := "VS"
+
+	// _, err = db.Exec("DROP DATABASE IF EXISTS " + "\"VS\"")
+	// if err != nil {
+	// 	panic(err)
+	// }
+
 	// name := "\"VS\""
-	res, err := db.Query("SELECT datname FROM pg_catalog.pg_database WHERE datname = " + name)
+	// res, err := db.Query("SELECT datname FROM pg_catalog.pg_database")
+	res, err := db.Query("SELECT datname FROM pg_catalog.pg_database WHERE datname = '" + name + "'")
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
-	if !res.Next() {
-		name := "VS"
-		_, err = db.Exec("CREATE DATABASE " + name)
+	if res.Next() {
+		dbname := ""
+		err = res.Scan(&dbname)
 		if err != nil {
 			panic(err)
 		}
+		fmt.Println("DB exist:", dbname)
+	} else {
 
+		// name := "VS"
+		fmt.Println("Creating DB")
+		_, err := db.Exec("CREATE DATABASE \"" + name + "\"")
+		if err != nil {
+			panic(err)
+		}
+		// fmt.Println(res.RowsAffected())
 	}
 	db.Close()
+	///////////////////
 	db, err = sql.Open("postgres", headers.CONNSTRWDB)
 	// _, err = db.Exec("\\c" + name)
 	if err != nil {
@@ -113,8 +133,8 @@ TABLESPACE pg_default;
 
 ALTER TABLE IF EXISTS public.tasks
     OWNER to postgres;`)
-	fmt.Println(err)
 	if err != nil {
 		panic(err)
 	}
+	return true
 }
