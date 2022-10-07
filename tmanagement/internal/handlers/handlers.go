@@ -70,13 +70,13 @@ func GetBrowserOptDuration(c *gin.Context) {
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
-	fmt.Println(string(body))
+	// fmt.Println(string(body))
 
 	err = json.Unmarshal(body, &ret)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("ret1 ", ret)
+	// fmt.Println("ret1 ", ret)
 	c.JSON(resp.StatusCode, ret)
 	RedisSet(rdb, Order_name, string(body))
 	/*

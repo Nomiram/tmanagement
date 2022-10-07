@@ -1,10 +1,10 @@
 package headers
 
-var CONNSTR = "user=postgres password=qwerty dbname=VS sslmode=disable"
+var CONNSTR = "user=postgres password=qwerty sslmode=disable"
 
 // var CONNSTR = "host=db port=5432 user=postgres password=postgres sslmode=disable"
 
-var CONNSTRWDB = CONNSTR + " dbname=vs"
+var CONNSTRWDB = CONNSTR + " dbname=VS"
 
 type Order struct {
 	Order_name string `json:"order_name"`
