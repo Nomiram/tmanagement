@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-func GetOptDuration(Order_name string, maxres int, goroutinesCount int) (float64, []string) {
-	// Получение всех работ для задачи
+func GetOptDuration(Order_name string, maxres int, goroutinesCount int) (mintime float64, minpath []string) {
+	// Получение всех работ для задачи ы
 	db, err := sql.Open("postgres", headers.CONNSTRWDB)
 	if err != nil {
 		panic(err)
@@ -164,7 +164,7 @@ func GetOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 		go GPSS()
 
 	}
-	mintime := -1.0
+	mintime = -1.0
 	mas := []ret{}
 	for i := 0; i < goroutinesCount; i++ {
 		mas = append(mas, <-doCh)
@@ -182,7 +182,7 @@ func GetOptDuration(Order_name string, maxres int, goroutinesCount int) (float64
 	}
 	fmt.Println()
 	mintime = mas[0].Duration
-	minpath := []string{}
+	minpath = []string{}
 	for i := 0; i < goroutinesCount; i++ {
 		if mas[i].Duration <= mintime {
 			mintime = mas[i].Duration

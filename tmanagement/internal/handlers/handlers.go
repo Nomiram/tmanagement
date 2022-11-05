@@ -7,14 +7,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"time"
 	"tmanagement/internal/headers"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
+	"github.com/segmentio/kafka-go"
 )
+
+var cons *kafka.Conn = KafkaConsumer()
+var writer *kafka.Writer = KafkaProducer()
 
 func RedisConnect() *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
@@ -35,7 +39,8 @@ func RedisGet(rdb *redis.Client, key string) string {
 	var ctx = context.Background()
 	val, err := rdb.Get(ctx, key).Result()
 	if err != nil {
-		panic(err)
+		// fmt.Println("redis error: ", err)
+		return ""
 	}
 	return val
 }
@@ -63,21 +68,40 @@ func GetBrowserOptDuration(c *gin.Context) {
 		c.JSON(http.StatusOK, ret)
 		return
 	}
-	//Запрос к сервису 2, если в Redis нет json
-	resp, err := http.Get("http://serv2:6000/duration/" + Order_name)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-	// fmt.Println(string(body))
+	/*
+		//Запрос к сервису 2, если в Redis нет json
+		resp, err := http.Get("http://serv2:6000/duration/" + Order_name)
+		if err != nil {
+			panic(err)
+		}
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		// fmt.Println(string(body))
 
-	err = json.Unmarshal(body, &ret)
+		err = json.Unmarshal(body, &ret)
+		if err != nil {
+			panic(err)
+		}
+		// fmt.Println("ret1 ", ret)
+		c.JSON(resp.StatusCode, ret)
+	*/
+	time.Sleep(1 * time.Second)
+	ri := time.Now().Unix()
+	KafkaWrite(writer, "input"+Order_name+fmt.Sprint(ri), Order_name)
+	var msg_type, body string
+	for {
+		msg_type, body = KafkaRead(cons)
+		if msg_type != "return"+Order_name+fmt.Sprint(ri) {
+			continue
+		}
+		break
+	}
+	err := json.Unmarshal([]byte(body), &ret)
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println("ret1 ", ret)
-	c.JSON(resp.StatusCode, ret)
+	c.JSON(200, ret)
+	// router.Run(":6000")
 	RedisSet(rdb, Order_name, string(body))
 	/*
 		i, path := core.GetOptDuration(Order_name, 10, 200000)
