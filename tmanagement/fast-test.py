@@ -8,6 +8,7 @@ import time
 import requests
 
 URL_TASKS = 'http://localhost:8080/tasks'
+URL_PING = 'http://localhost:8080/ping'
 URL_TASK_ORDER = 'http://localhost:8080/tasks/'+'OrderB'
 URL_TASK_ORDERA = 'http://localhost:8080/tasks/'+'OrderA'
 URL_TASK_ORDERB = 'http://localhost:8080/tasks/'+'OrderB'
@@ -19,6 +20,11 @@ headers = {
 }
 def testing():
     print("Тестирование:")
+    r = requests.get(URL_PING, headers=headers,timeout=10)
+    if 200<=r.status_code<300: print("ping test passed")
+    else:
+        print("test failed\n", r.text)
+        return 1    
     print("Создание (обновление) Order: ",end="")
     # Создание (обновление) Order
     data = {"order_name": "OrderA", "start_date":"2020-11-23"}
@@ -127,7 +133,7 @@ def testing():
     print("Повторный#2 (без изменений): ",end="")
     start_time = time.time()
     # Запрос duration повторный2
-    r = requests.get(URL_DURATION,timeout=20)
+    r = requests.get(URL_DURATION,timeout=100)
     if 200<=r.status_code<300: print("duration test passed")
     else: print("duration test failed\n", r.text)
     print(r.text)

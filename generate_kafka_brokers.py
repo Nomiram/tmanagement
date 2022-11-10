@@ -1,4 +1,5 @@
-with open("generated-docker-compose.yml",'w') as f:
+brokers_cnt = 3
+with open("docker-compose.yml",'w') as f:
     f.write('''
 version: '3.8'
 services:
@@ -38,7 +39,7 @@ services:
     networks:
       - backend  
     ''')
-    for i in range(2):
+    for i in range(brokers_cnt):
         f.write(
     f'''
   kafka_{i}:
@@ -49,7 +50,7 @@ services:
       KAFKA_BROKER_ID: {i+1}
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       HOSTNAME_COMMAND: "docker info | grep ^Name: | cut -d' ' -f 2"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_{i}:{9092+i},PLAINTEXT_HOST1://kafka:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_{i}:{9092+i},PLAINTEXT_HOST1://kafka:{29092+i}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST1:PLAINTEXT
     healthcheck:
       test: nc -z localhost {9092+i} || exit -1 
@@ -71,8 +72,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
       redis:
         condition: service_started
       serv2:
@@ -91,8 +90,6 @@ services:
       # - 8080:8080
     depends_on:
       db:
-        condition: service_healthy
-      kafka:
         condition: service_healthy
       redis:
         condition: service_started

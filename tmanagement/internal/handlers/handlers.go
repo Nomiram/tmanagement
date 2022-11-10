@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	"tmanagement/internal/handlers/kafkahandlers"
 	"tmanagement/internal/headers"
 
 	"github.com/gin-gonic/gin"
@@ -17,8 +18,8 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-var cons *kafka.Conn = KafkaConsumer()
-var writer *kafka.Writer = KafkaProducer()
+var cons *kafka.Reader = kafkahandlers.KafkaConsumer()
+var writer *kafka.Writer = kafkahandlers.KafkaProducer()
 
 func RedisConnect() *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
@@ -87,10 +88,12 @@ func GetBrowserOptDuration(c *gin.Context) {
 	*/
 	time.Sleep(1 * time.Second)
 	ri := time.Now().Unix()
-	KafkaWrite(writer, "input"+Order_name+fmt.Sprint(ri), Order_name)
+	kafkahandlers.KafkaWrite(writer, "input"+Order_name+fmt.Sprint(ri), Order_name)
+	// KafkaWrite(writer, "input"+Order_name+fmt.Sprint(ri), Order_name)
 	var msg_type, body string
+	ctx := context.Background()
 	for {
-		msg_type, body = KafkaRead(cons)
+		msg_type, body = kafkahandlers.KafkaRead(cons, ctx)
 		if msg_type != "return"+Order_name+fmt.Sprint(ri) {
 			continue
 		}
