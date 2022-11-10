@@ -238,18 +238,20 @@ func PostOrders(c *gin.Context) {
 	}
 	defer db.Close()
 	////Удаление headers.Order при обновлении
-	if c.Request.Method == "PUT" {
-		result, err := db.Exec("DELETE FROM orders WHERE order_name = $1; ",
-			newOrder.Order_name)
-		if err != nil {
-			fmt.Println(result)
-			c.IndentedJSON(http.StatusBadRequest, err)
-			// panic(err)
-			return
+	/*
+		if c.Request.Method == "PUT" {
+			result, err := db.Exec("DELETE FROM orders WHERE order_name = $1; ",
+				newOrder.Order_name)
+			if err != nil {
+				fmt.Println(result)
+				c.IndentedJSON(http.StatusBadRequest, err)
+				// panic(err)
+				return
+			}
 		}
-	}
+	*/
 	//Добавление данных в таблицу
-	result, err := db.Exec("insert into orders (order_name, start_date) values ($1, $2)",
+	result, err := db.Exec("insert into orders (order_name, start_date) values ($1, $2) ON CONFLICT (order_name) DO UPDATE SET start_date=$2",
 		newOrder.Order_name, newOrder.Start_date)
 	if err != nil {
 		fmt.Println(result)
