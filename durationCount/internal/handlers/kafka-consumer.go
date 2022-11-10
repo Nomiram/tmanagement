@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -15,13 +14,19 @@ func KafkaConsumer() *kafka.Conn {
 	// to consume messages
 	topic := "my-topic-1"
 	partition := 0
-
+	var conn *kafka.Conn
+	var err error
 	// time.Sleep(time.Second * 5)
-	conn, err := kafka.DialLeader(context.Background(), "tcp", "kafka:9092", topic, partition)
-	if err != nil {
-		//
-		log.Fatal("Comsumer: failed to dial leader:", err)
-		time.Sleep(time.Second * 2)
+	for {
+		// kafka.DialLeader()
+		conn, err = kafka.DialLeader(context.Background(), "tcp", "kafka_0:9092", topic, partition)
+		if err != nil {
+			//
+			fmt.Println("Comsumer: failed to dial leader:", err)
+			time.Sleep(time.Second * 2)
+			continue
+		}
+		break
 	}
 
 	// conn.SetReadDeadline(time.Now().Add(10 * time.Second))

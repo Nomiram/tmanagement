@@ -1,4 +1,5 @@
-
+with open("generated-docker-compose.yml",'w') as f:
+    f.write('''
 version: '3.8'
 services:
   db:
@@ -36,41 +37,28 @@ services:
       - 22181:2181
     networks:
       - backend  
-    
-  kafka_0:
+    ''')
+    for i in range(2):
+        f.write(
+    f'''
+  kafka_{i}:
     image: confluentinc/cp-kafka:latest
     depends_on:
       - zookeeper
     environment:
-      KAFKA_BROKER_ID: 1
+      KAFKA_BROKER_ID: {i+1}
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       HOSTNAME_COMMAND: "docker info | grep ^Name: | cut -d' ' -f 2"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_0:9092,PLAINTEXT_HOST1://kafka:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_{i}:{9092+i},PLAINTEXT_HOST1://kafka:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST1:PLAINTEXT
     healthcheck:
-      test: nc -z localhost 9092 || exit -1 
+      test: nc -z localhost {9092+i} || exit -1 
       interval: 15s
       timeout: 10s
       retries: 5  
     networks:
-      - backend
-  kafka_1:
-    image: confluentinc/cp-kafka:latest
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      HOSTNAME_COMMAND: "docker info | grep ^Name: | cut -d' ' -f 2"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_1:9093,PLAINTEXT_HOST1://kafka:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST1:PLAINTEXT
-    healthcheck:
-      test: nc -z localhost 9093 || exit -1 
-      interval: 15s
-      timeout: 10s
-      retries: 5  
-    networks:
-      - backend
+      - backend''')
+    f.write('''
   api:
     build: ./tmanagement
     environment:
@@ -83,8 +71,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      # kafka:
-        # condition: service_healthy
+      kafka:
+        condition: service_healthy
       redis:
         condition: service_started
       serv2:
@@ -104,8 +92,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      # kafka:
-        # condition: service_healthy
+      kafka:
+        condition: service_healthy
       redis:
         condition: service_started
     # network_mode: bridge
@@ -118,4 +106,4 @@ networks:
   backend:
     driver: 
       bridge
-    
+    ''')

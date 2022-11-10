@@ -28,7 +28,6 @@ func GetBrowserOptDuration(c *gin.Context) {
 	if i == -1 {
 		c.IndentedJSON(http.StatusBadRequest, returnstruct{i, path})
 	} else {
-
 		c.IndentedJSON(http.StatusOK, ret)
 	}
 }

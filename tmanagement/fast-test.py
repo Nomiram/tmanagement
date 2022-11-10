@@ -96,7 +96,7 @@ def testing():
     print("Запрос duration")
     start_time = time.time()
     # Запрос duration
-    r = requests.get(URL_DURATION,timeout=10)
+    r = requests.get(URL_DURATION,timeout=20)
     if 200<=r.status_code<300: print("duration test passed")
     else: print("duration test failed\n", r.text)
     print(r.text)
@@ -104,7 +104,7 @@ def testing():
     # Запрос duration повторный
     print("Повторный")
     start_time = time.time()
-    r = requests.get(URL_DURATION,timeout=10)
+    r = requests.get(URL_DURATION,timeout=20)
     if 200<=r.status_code<300: print("duration test passed")
     else: print("duration test failed\n", r.text)
     print(r.text)
@@ -119,7 +119,7 @@ def testing():
     print("Повторный с добавлением: ",end="")
     start_time = time.time()
     # Запрос duration повторный2
-    r = requests.get(URL_DURATION,timeout=10)
+    r = requests.get(URL_DURATION,timeout=20)
     if 200<=r.status_code<300: print("duration test passed")
     else: print("duration test failed\n", r.text)
     print(r.text)
@@ -127,7 +127,7 @@ def testing():
     print("Повторный#2 (без изменений): ",end="")
     start_time = time.time()
     # Запрос duration повторный2
-    r = requests.get(URL_DURATION,timeout=10)
+    r = requests.get(URL_DURATION,timeout=20)
     if 200<=r.status_code<300: print("duration test passed")
     else: print("duration test failed\n", r.text)
     print(r.text)
@@ -135,7 +135,7 @@ def testing():
     # Удаление Task
     data = {"order_name": "OrderB", "task": "6"}
     print(json.dumps(data))
-    r = requests.delete(URL_TASKS, headers=headers, data=json.dumps(data),timeout=10)
+    r = requests.delete(URL_TASKS, headers=headers, data=json.dumps(data),timeout=20)
     return 0
 
 try:
