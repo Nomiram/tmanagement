@@ -14,7 +14,6 @@ services:
       - '5432:5432'
     volumes: 
       - db:/var/lib/postgresql/data
-    # network_mode: bridge
     healthcheck:
       test: ["CMD", "pg_isready"]
       interval: 10s
@@ -49,7 +48,6 @@ services:
     environment:
       KAFKA_BROKER_ID: {i+1}
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      HOSTNAME_COMMAND: "docker info | grep ^Name: | cut -d' ' -f 2"
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_{i}:{9092+i},PLAINTEXT_HOST1://kafka:{29092+i}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST1:PLAINTEXT
     healthcheck:
@@ -76,24 +74,17 @@ services:
         condition: service_started
       serv2:
         condition: service_started
-    # network_mode: bridge
     networks:
       - backend
   serv2:
     build: ./durationCount
     environment:
       DBADDR: "db"
-    # expose:
-      # - 5432
-      # - 8080
-    # ports:
-      # - 8080:8080
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
-    # network_mode: bridge
     networks:
       - backend
 volumes:
