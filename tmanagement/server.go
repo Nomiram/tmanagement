@@ -12,25 +12,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
-/*
-TODO:
-1. Разбить на файлы
-2. Дальнейшая оптимизация кода
-*/
-
 // Информация для подключения к БД postgres
-
-// var CONNSTR = "host=db port=5432 user=postgres password=qwerty dbname=VS sslmode=disable"
 
 func main() {
 	value, ok := os.LookupEnv("DBADDR")
 	if ok {
 		headers.AddDBinCONNSTR(value)
-		// headers.CONNSTR = "host=" + value + " port=5432 user=postgres password=postgres sslmode=disable"
 	}
 
-	// headers.CONNSTR = "host=db port=5432 user=postgres password=postgres sslmode=disable"
-	// fmt.Println(headers.CONNSTR)
 	router := gin.Default()
 	router.GET("/duration/:Order", handlers.GetBrowserOptDuration)
 	router.GET("/orders", handlers.GetOrders)
@@ -62,14 +51,6 @@ func checkDB() bool {
 	}
 	defer db.Close()
 	name := "VS"
-
-	// _, err = db.Exec("DROP DATABASE IF EXISTS " + "\"VS\"")
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// name := "\"VS\""
-	// res, err := db.Query("SELECT datname FROM pg_catalog.pg_database")
 	res, err := db.Query("SELECT datname FROM pg_catalog.pg_database WHERE datname = '" + name + "'")
 	if err != nil {
 		fmt.Println(err)
@@ -94,7 +75,6 @@ func checkDB() bool {
 	db.Close()
 	///////////////////
 	db, err = sql.Open("postgres", headers.CONNSTRWDB)
-	// _, err = db.Exec("\\c" + name)
 	if err != nil {
 		panic(err)
 	}

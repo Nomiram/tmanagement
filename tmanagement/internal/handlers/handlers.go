@@ -69,27 +69,9 @@ func GetBrowserOptDuration(c *gin.Context) {
 		c.JSON(http.StatusOK, ret)
 		return
 	}
-	/*
-		//Запрос к сервису 2, если в Redis нет json
-		resp, err := http.Get("http://serv2:6000/duration/" + Order_name)
-		if err != nil {
-			panic(err)
-		}
-		defer resp.Body.Close()
-		body, _ := io.ReadAll(resp.Body)
-		// fmt.Println(string(body))
-
-		err = json.Unmarshal(body, &ret)
-		if err != nil {
-			panic(err)
-		}
-		// fmt.Println("ret1 ", ret)
-		c.JSON(resp.StatusCode, ret)
-	*/
 	time.Sleep(1 * time.Second)
 	ri := time.Now().Unix()
 	kafkahandlers.KafkaWrite(writer, "input"+Order_name+fmt.Sprint(ri), Order_name)
-	// KafkaWrite(writer, "input"+Order_name+fmt.Sprint(ri), Order_name)
 	var msg_type, body string
 	ctx := context.Background()
 	for {
@@ -104,23 +86,9 @@ func GetBrowserOptDuration(c *gin.Context) {
 		panic(err)
 	}
 	c.JSON(200, ret)
-	// router.Run(":6000")
+
 	RedisSet(rdb, Order_name, string(body))
-	/*
-		i, path := core.GetOptDuration(Order_name, 10, 200000)
-		ret := returnstruct{Duration: i, Path: path}
-		if i == -1 {
-			c.IndentedJSON(http.StatusBadRequest, struct {
-				Status   string
-				Duration float64
-				Path     []string
-			}{fmt.Sprint(http.StatusBadRequest), i, path})
-		} else {
-			res, _ := json.Marshal(ret)
-			RedisSet(rdb, Order_name, string(res))
-			c.IndentedJSON(http.StatusOK, ret)
-		}
-	*/
+
 }
 
 // REST API:GET Возвращает информацию из таблицы tasks
@@ -240,19 +208,7 @@ func PostOrders(c *gin.Context) {
 		panic(err)
 	}
 	defer db.Close()
-	////Удаление headers.Order при обновлении
-	/*
-		if c.Request.Method == "PUT" {
-			result, err := db.Exec("DELETE FROM orders WHERE order_name = $1; ",
-				newOrder.Order_name)
-			if err != nil {
-				fmt.Println(result)
-				c.IndentedJSON(http.StatusBadRequest, err)
-				// panic(err)
-				return
-			}
-		}
-	*/
+
 	//Добавление данных в таблицу
 	result, err := db.Exec("insert into orders (order_name, start_date) values ($1, $2) ON CONFLICT (order_name) DO UPDATE SET start_date=$2",
 		newOrder.Order_name, newOrder.Start_date)

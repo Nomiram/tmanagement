@@ -12,7 +12,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /go/bin/app -v ./...
 
 FROM alpine:latest as run
 RUN apk --no-cache add ca-certificates
-# WORKDIR /root/
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=builder --chown=app /go/bin/app /app
 RUN chmod +x /app/*
