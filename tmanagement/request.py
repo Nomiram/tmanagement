@@ -108,4 +108,5 @@ print("%s seconds" % (time.time() - start_time))
 data = {"order_name": "OrderB", "task": "6"}
 print(json.dumps(data))
 r = requests.delete(URL_TASKS, headers=headers, data=json.dumps(data))
+print("All tests passed")
 input("Press Enter to exit")

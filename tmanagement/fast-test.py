@@ -20,7 +20,7 @@ headers = {
 }
 def testing():
     print("Тестирование:")
-    r = requests.get(URL_PING, headers=headers,timeout=10)
+    r = requests.get(URL_PING, headers=headers,timeout=50)
     if 200<=r.status_code<300: print("ping test passed")
     else:
         print("test failed\n", r.text)
@@ -29,28 +29,28 @@ def testing():
     # Создание (обновление) Order
     data = {"order_name": "OrderA", "start_date":"2020-11-23"}
     # print("PUT:\n",json.dumps(data))
-    r = requests.put(URL_ORDERS, headers=headers, data=json.dumps(data),timeout=10)
+    r = requests.put(URL_ORDERS, headers=headers, data=json.dumps(data),timeout=50)
     if 200<=r.status_code<300: print("test passed")
     else:
         print("test failed\n", r.text)
         return 1
     data = {"order_name": "OrderB", "start_date":"2020-11-23"}
     # print("PUT:\n",json.dumps(data))
-    r = requests.put(URL_ORDERS, headers=headers, data=json.dumps(data),timeout=10)
+    r = requests.put(URL_ORDERS, headers=headers, data=json.dumps(data),timeout=50)
     if 200<=r.status_code<300: print("test#2 passed")
     else: print("test#2 failed\n", r.text)
     print("Создание (обновление) OrderC (для удаления): ",end="")
     # Создание (обновление) Order (для удаления)
     data = {"order_name": "OrderC", "start_date":"2020-11-23"}
     # print(json.dumps(data))
-    r = requests.put(URL_ORDERS, headers=headers, data=json.dumps(data),timeout=10)
+    r = requests.put(URL_ORDERS, headers=headers, data=json.dumps(data),timeout=50)
     if 200<=r.status_code<300: print("test#3 passed")
     else: print("test#3 failed\n", r.text)
     # Удаление Order
     print("Удаление OrderC: ",end="")
     data = {"order_name": "OrderC"}
     # print(json.dumps(data))
-    r = requests.delete(URL_ORDERS, headers=headers, data=json.dumps(data),timeout=10)
+    r = requests.delete(URL_ORDERS, headers=headers, data=json.dumps(data),timeout=50)
     if 200<=r.status_code<300: print("delete test passed")
     else: print("delete test failed\n", r.text)
 
@@ -59,7 +59,7 @@ def testing():
     # data = {"order_name": "Order4", "start_date":"2020-11-23"}
     data = {"task": "3", "order_name": "OrderA", "duration": 4, "resource": 3, "pred": '["1"]'}
     # print(json.dumps(data))
-    r = requests.put(URL_TASKS, headers=headers, data=json.dumps(data),timeout=10)
+    r = requests.put(URL_TASKS, headers=headers, data=json.dumps(data),timeout=50)
     # r2 = requests.post(URL1, headers=headers, data=json.dumps(data))
     if 200<=r.status_code<300: print("put test passed")
     else: print("put test failed\n", r.text)
@@ -76,14 +76,14 @@ def testing():
     ]
     for data in data_mas:
         # print(json.dumps(data))
-        r = requests.put(URL_TASKS, headers=headers, data=json.dumps(data),timeout=10)
+        r = requests.put(URL_TASKS, headers=headers, data=json.dumps(data),timeout=50)
         # r2 = requests.post(URL1, headers=headers, data=json.dumps(data))
         if 200<=r.status_code<300: pass
         else: print("put test failed\n", r.text)
     print("Проверка добавления: ",end="")
-    r3=requests.get(URL_TASK_ORDERA,timeout=10)
+    r3=requests.get(URL_TASK_ORDERA,timeout=50)
     testarr = json.loads(r3.text)
-    r3=requests.get(URL_TASK_ORDERB,timeout=10)
+    r3=requests.get(URL_TASK_ORDERB,timeout=50)
     testarr += json.loads(r3.text)
     if 200<=r3.status_code<300:
         for i in data_mas:
@@ -102,7 +102,7 @@ def testing():
     print("Запрос duration")
     start_time = time.time()
     # Запрос duration
-    r = requests.get(URL_DURATION,timeout=20)
+    r = requests.get(URL_DURATION,timeout=200)
     if 200<=r.status_code<300: print("duration test passed")
     else: print("duration test failed\n", r.text)
     print(r.text)
@@ -110,14 +110,14 @@ def testing():
     # Запрос duration повторный
     print("Повторный")
     start_time = time.time()
-    r = requests.get(URL_DURATION,timeout=20)
+    r = requests.get(URL_DURATION,timeout=200)
     if 200<=r.status_code<300: print("duration test passed")
     else: print("duration test failed\n", r.text)
     print(r.text)
     print(f"{(time.time() - start_time)} seconds")
     print("Добавление нового элемента: ",end="")
     data = {"task": "6", "order_name": "OrderB", "duration": 4, "resource": 10, "pred": '["1"]'}
-    r = requests.put(URL_TASKS, headers=headers, data=json.dumps(data),timeout=10)
+    r = requests.put(URL_TASKS, headers=headers, data=json.dumps(data),timeout=50)
     if 200<=r.status_code<300: 
         print("put test passed")
         # print(r.text)
@@ -125,7 +125,7 @@ def testing():
     print("Повторный с добавлением: ",end="")
     start_time = time.time()
     # Запрос duration повторный2
-    r = requests.get(URL_DURATION,timeout=20)
+    r = requests.get(URL_DURATION,timeout=500)
     if 200<=r.status_code<300: print("duration test passed")
     else: print("duration test failed\n", r.text)
     print(r.text)
@@ -133,7 +133,7 @@ def testing():
     print("Повторный#2 (без изменений): ",end="")
     start_time = time.time()
     # Запрос duration повторный2
-    r = requests.get(URL_DURATION,timeout=100)
+    r = requests.get(URL_DURATION,timeout=500)
     if 200<=r.status_code<300: print("duration test passed")
     else: print("duration test failed\n", r.text)
     print(r.text)
