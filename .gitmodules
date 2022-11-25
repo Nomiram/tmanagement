@@ -1,6 +1,6 @@
-[submodule "durationCount/internal/handlers/kafka-submodule"]
-	path = durationCount/internal/handlers/kafka-submodule
-	url = https://github.com/Nomiram/kafka-submodule
 [submodule "tmanagement/internal/handlers/kafkahandlers"]
 	path = tmanagement/internal/handlers/kafkahandlers
+	url = https://github.com/Nomiram/kafka-submodule
+[submodule "durationCount/internal/handlers/kafkahandlers"]
+	path = durationCount/internal/handlers/kafkahandlers
 	url = https://github.com/Nomiram/kafka-submodule
