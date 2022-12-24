@@ -40,7 +40,6 @@ func RedisGet(rdb *redis.Client, key string) string {
 	var ctx = context.Background()
 	val, err := rdb.Get(ctx, key).Result()
 	if err != nil {
-		// fmt.Println("redis error: ", err)
 		return ""
 	}
 	return val
